@@ -30,7 +30,7 @@ def getmyauction(key, name, profilename):
         if (unclaimed["claimed"]) == False:
             
             item = str(unclaimed["item_name"])
-            end = int((unclaimed["end"])//1000)
+            end = int((unclaimed["end"]) // 1000)
             endtime = str(datetime.datetime.fromtimestamp(end))
             highbid = str(unclaimed["highest_bid_amount"])
             result = str("アイテム:" + (item) + "　" + "終了:" + (endtime) + "　" + " 最高bid:" + (highbid))
