@@ -69,7 +69,7 @@ class MyClient(discord.Client):
                 profilename = str(usr["profile"])
                 getmyauction(key, name, profilename)
                 results = getmyauction(key, name, profilename)
-                if results == None:
+                if len(results) == 0:
                     await message.channel.send(message.author.mention + "未回収のオークションはありません")
                     pass
                 else:
