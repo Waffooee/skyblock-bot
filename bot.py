@@ -3,7 +3,7 @@ import datetime
 import json
 import os
 import re
-
+import time
 import discord
 import requests
 
@@ -28,12 +28,17 @@ def getmyauction(key, name, profilename):
     myauction = list(data["auctions"])
     for unclaimed in myauction:
         if (unclaimed["claimed"]) == False:
-            
             item = str(unclaimed["item_name"])
-            end = int((unclaimed["end"]) // 1000)
-            endtime = str(datetime.datetime.fromtimestamp(end))
+            end = int(((unclaimed["end"])//1000)-time.time())
+            delta = datetime.timedelta(seconds=int(end))
+            deltam, deltas = divmod(delta.seconds, 60)
+            deltah, deltam = divmod(deltam, 60)
+            deltad,deltah = divmod(deltah,24)
             highbid = str(unclaimed["highest_bid_amount"])
-            result = str("アイテム:" + (item) + "　" + "終了:" + (endtime) + "　" + " 最高bid:" + (highbid))
+            if end > 0:
+                result = str("アイテム:" + (item) + "　"+ "終了まで:" + str(deltad)+"日"+ str(deltah)+"時間" + str(deltam)+"分" + str(deltas)+"秒" + "　" + " 最高bid:" + (highbid)+"coin")
+            else:
+                result = str("アイテム:" + (item) + "　"+ "終了済み" + "　" + " 最高bid:" + (highbid)+"coin")
             results.append(result)
     return results
 
@@ -94,7 +99,6 @@ class MyClient(discord.Client):
             newkey,newname,newprofile = addnewusr(author,key,name,profilename)
             await message.channel.send(message.author.mention + (msg) +"\n"+"キー:"+str(newkey)+"\n"+"MCID:"+str(newname)+"\n"+"プロファイル:"+str(newprofile))
             return
-            
             
 
 client = MyClient()
