@@ -7,7 +7,7 @@ import discord
 import requests
 
 # APIキーはBOTの管理者のもののみでOK
-api_key = "BOT Owner's API key"
+api_key = ""
 
 
 def get_endpoint_url(name, profile_name, endpoint):
@@ -61,10 +61,71 @@ def get_my_auctions(name, profile_name):
 
 def add_new_usr(author, name, profile_name):
     new_file = "usrdata/" + author + ".json"
-    with open(new_file, "w") as nf:
-        data = {"name": str(name), "profile": str(profile_name)}
-        json.dump(data, nf, ensure_ascii=False)
-        return name, profile_name
+    usr = {
+        "accounts": {},
+        "profiles": []
+    }
+    try:
+        r = open(new_file, "r")
+        usr_tmp = json.load(r)
+        if "key" in usr_tmp:
+            usr, _ = convert_usr_data(author)
+        r.close()
+    except FileNotFoundError:
+        pass
+    w = open(new_file, "w")
+    usr["accounts"]["default"] = name
+    usr["profiles"].append({
+        "name": name,
+        "profile": profile_name
+    })
+    json.dump(usr, w)
+    w.close()
+    return name, profile_name
+
+
+def get_default_profile(author, name):
+    usrdata = "usrdata/" + author + ".json"
+    with open(usrdata) as f:
+        usr = json.load(f)
+        # 'key'が存在する→旧形式でのファイル
+        if "key" in usr:
+            usr, data_profile = convert_usr_data(author)
+            return usr["accounts"]["default"], data_profile
+        else:
+            data = usr["profiles"]
+            if name == "":
+                name = usr["accounts"]["default"]
+            for d in data:
+                if d["name"] == name:
+                    return name, d["profile"]
+
+
+def convert_usr_data(author):
+    usrdata = "usrdata/" + author + ".json"
+
+    r = open(usrdata, "r")
+    usr = json.load(r)
+    data_name = usr["name"]
+    data_profile = usr["profile"]
+    r.close()  # with文使うとネスト深くなって嫌だったので普通にclose
+
+    usr = {
+        "accounts": {
+            "default": data_name
+        },
+        "profiles": [
+            {
+                "name": data_name,
+                "profile": data_profile
+            }
+        ]
+    }
+
+    w = open(usrdata, "w")
+    json.dump(usr, w)
+    w.close()
+    return usr, data_profile
 
 
 class MyClient(discord.Client):
@@ -79,29 +140,19 @@ class MyClient(discord.Client):
         if re.compile("!ah").search(message.content):
             author = str(message.author.id)
             try:
-                usrdata = "usrdata/" + author + ".json"
-                f = open(usrdata)
-                usr = json.load(f)
-                key = str(usr["key"])
-                name = str(usr["name"])
+                name = ""
                 if re.match("(!ah )(.*)", message.content):
-                    arg = re.match("(!ah )(.*)", message.content).group(2).capitalize()
-                    profile_name = str(arg)
-                else:
-                    profile_name = str(usr["profile"])
-                get_my_auctions(name, profile_name)
-                results, total_coins = get_my_auctions(name, profile_name)
-                if len(results) == 0:
-                    await message.channel.send(
-                        message.author.mention + "\n" + ":information_source: " + "未回収のオークションはありません")
+                    name = str(re.match("!(ah )(.*)", message.content).group(2).capitalize())
+                name, profile = get_default_profile(author, name)
+                result, total_coins = get_my_auctions(name, profile)
+                if len(result) == 0:
+                    await message.channel.send(message.author.mention + "\n" + ":information_source: "+"未回収のオークションはありません")
                     pass
                 else:
-                    txt = "\n".join(results)
+                    txt = "\n".join(result)
                     total_coins = "{:,}".format(total_coins)
-                    await message.channel.send(
-                        message.author.mention + "\n" + "未回収のオークションがあります。" + "\n" + txt + "\n" + "　**売上総額: " + (
-                            total_coins) + "coin**")
-                    pass
+                    await message.channel.send(message.author.mention + "\n" + "未回収のオークションがあります。" + "\n" + txt + "\n" + "　**売上総額: " + total_coins+"coin**")
+
             except KeyError:
                 await message.channel.send(message.author.mention + "\n" + ":warning: " + "キーエラー" + "\n" + "APIキーが不正です")
             except FileNotFoundError:
@@ -114,9 +165,9 @@ class MyClient(discord.Client):
                     message.author.mention + "\n" + msg1 + "\n" + msg2 + "\n" + msg3 + "\n" + msg4 + "\n" + msg5 + "\n")
             return
 
-        if re.compile("(!add )(.+)([ ,])(.+)([ ,])(.+)").match(message.content):
+        if re.compile("(!add )(.+)([ ,])(.+)").match(message.content):
             author = str(message.author.id)
-            com = re.match("(!add )(.+)([ ,])(.+)([ ,])(.+)", message.content)
+            com = re.match("(!add )(.+)([ ,])(.+)", message.content)
             name = com.group(2)
             profile_name = com.group(4).capitalize()
             msg = "登録を完了しました。"
@@ -128,5 +179,5 @@ class MyClient(discord.Client):
 
 
 client = MyClient()
-token = "TOKEN"
+token = ""
 client.run(token)
