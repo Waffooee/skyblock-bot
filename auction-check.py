@@ -7,58 +7,58 @@ import discord
 import requests
 
 
-def getendpointurl(key, name, profilename, endpoint):
+def get_endpoint_url(key, name, profile_name, endpoint):
     url = str("https://api.hypixel.net/player?key=" + (key) + "&name=" + (name))
     headers = {"content-type": "application/json"}
     r = requests.get(url, headers=headers)
     data = r.json()
     profiles = (data["player"]["stats"]["SkyBlock"]["profiles"])
     for profs in profiles.values():
-        if (profs["cute_name"]) == profilename:
+        if (profs["cute_name"]) == profile_name:
             url = str("https://api.hypixel.net/" + (endpoint) + "?key=" + (key) + "&name=" + (name) + "&profile=" + str(
                 profs["profile_id"]))
             return url
 
 
-def getmyauction(key, name, profilename):
+def get_my_auctions(key, name, profile_name):
     endpoint = "skyblock/auction"
-    totalcoins = 0
+    total_coins = 0
     results = []
-    url = getendpointurl(key, name, profilename, endpoint)
+    url = get_endpoint_url(key, name, profile_name, endpoint)
     headers = {"content-type": "application/json"}
     r = requests.get(url, headers=headers)
     data = r.json()
-    myauction = list(data["auctions"])
-    for unclaimed in myauction:
-        if (unclaimed["claimed"]) == False:
+    my_auctions = list(data["auctions"])
+    for unclaimed in my_auctions:
+        if not (unclaimed["claimed"]):
             item = str(unclaimed["item_name"])
             end = int(((unclaimed["end"]) // 1000) - time.time())
             bid = int(unclaimed["highest_bid_amount"])
             delta = datetime.timedelta(seconds=int(end))
-            deltam, deltas = divmod(delta.seconds, 60)
-            deltah, deltam = divmod(deltam, 60)
-            deltad = delta.days
-            highbid = "{:,}".format(bid)
+            delta_m, deltas = divmod(delta.seconds, 60)
+            delta_h, delta_m = divmod(delta_m, 60)
+            delta_d = delta.days
+            high_bid = "{:,}".format(bid)
             if end > 0:
                 result = str(
-                    ":arrows_counterclockwise: " + "アイテム: " + (item) + "\n" + "　 終了まで: " + str(deltad) + "日 " + str(
-                        deltah) + "時間" + str(deltam) + "分 " + str(deltas) + "秒 " + "\n" + "　 最高bid: " + (
-                        highbid) + "coin")
-                totalcoins = totalcoins + bid
+                    ":arrows_counterclockwise: " + "アイテム: " + (item) + "\n" + "　 終了まで: " + str(delta_d) + "日 " + str(
+                        delta_h) + "時間" + str(delta_m) + "分 " + str(deltas) + "秒 " + "\n" + "　 最高bid: " + (
+                        high_bid) + "coin")
+                total_coins = total_coins + bid
             else:
                 if int(unclaimed["highest_bid_amount"]) == 0:
                     result = str(":warning: " + "アイテム: " + (item) + "\n" + "　 終了済み" + "\n" + "　 bid無し")
                 else:
                     result = str(":white_check_mark: " + "アイテム: " + (item) + "\n" + "　 終了済み" + "\n" + "　 最高bid: " + (
-                        highbid) + "coin")
-                    totalcoins = totalcoins + bid
+                        high_bid) + "coin")
+                    total_coins = total_coins + bid
             results.append(result)
-        return results, totalcoins
+        return results, total_coins
 
 
-def addnewusr(author, key, name, profilename):
-    newfile = "usrdata/" + (author) + ".json"
-    with open(newfile, "w") as nf:
+def add_new_usr(author, key, name, profilename):
+    new_file = "usrdata/" + (author) + ".json"
+    with open(new_file, "w") as nf:
         data = {"key": str(key), "name": str(name), "profile": str(profilename)}
         json.dump(data, nf, ensure_ascii=False)
         return key, name, profilename
@@ -83,21 +83,21 @@ class MyClient(discord.Client):
                 name = str(usr["name"])
                 if re.match("(!ah )(.*)", message.content):
                     arg = re.match("(!ah )(.*)", message.content).group(2).capitalize()
-                    profilename = str(arg)
+                    profile_name = str(arg)
                 else:
-                    profilename = str(usr["profile"])
-                getmyauction(key, name, profilename)
-                results, totalcoins = getmyauction(key, name, profilename)
+                    profile_name = str(usr["profile"])
+                get_my_auctions(key, name, profile_name)
+                results, total_coins = get_my_auctions(key, name, profile_name)
                 if len(results) == 0:
                     await message.channel.send(
                         message.author.mention + "\n" + ":information_source: " + "未回収のオークションはありません")
                     pass
                 else:
                     txt = "\n".join(results)
-                    totalcoins = "{:,}".format(totalcoins)
+                    total_coins = "{:,}".format(total_coins)
                     await message.channel.send(
                         message.author.mention + "\n" + "未回収のオークションがあります。" + "\n" + (txt) + "\n" + "　**売上総額: " + (
-                            totalcoins) + "coin**")
+                            total_coins) + "coin**")
                     pass
             except KeyError:
                 await message.channel.send(message.author.mention + "\n" + ":warning: " + "キーエラー" + "\n" + "APIキーが不正です")
@@ -117,12 +117,12 @@ class MyClient(discord.Client):
             com = re.match("(!add )(.+)([ ,])(.+)([ ,])(.+)", message.content)
             key = com.group(2)
             name = com.group(4)
-            profilename = com.group(6).capitalize()
+            profile_name = com.group(6).capitalize()
             msg = "登録を完了しました。"
-            newkey, newname, newprofile = addnewusr(author, key, name, profilename)
+            new_key, new_name, new_profile = add_new_usr(author, key, name, profile_name)
             await message.channel.send(
-                message.author.mention + (msg) + "\n" + "キー:" + str(newkey) + "\n" + "MCID:" + str(
-                    newname) + "\n" + "プロファイル:" + str(newprofile))
+                message.author.mention + (msg) + "\n" + "キー:" + str(new_key) + "\n" + "MCID:" + str(
+                    new_name) + "\n" + "プロファイル:" + str(new_profile))
             return
 
 
