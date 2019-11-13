@@ -6,25 +6,28 @@ import time
 import discord
 import requests
 
+# APIキーはBOTの管理者のもののみでOK
+api_key = "BOT Owner's API key"
 
-def get_endpoint_url(key, name, profile_name, endpoint):
-    url = str("https://api.hypixel.net/player?key=" + key + "&name=" + name)
+
+def get_endpoint_url(name, profile_name, endpoint):
+    url = str("https://api.hypixel.net/player?key=" + api_key + "&name=" + name)
     headers = {"content-type": "application/json"}
     r = requests.get(url, headers=headers)
     data = r.json()
     profiles = (data["player"]["stats"]["SkyBlock"]["profiles"])
     for profs in profiles.values():
         if (profs["cute_name"]) == profile_name:
-            url = str("https://api.hypixel.net/" + endpoint + "?key=" + key + "&name=" + name + "&profile=" + str(
+            url = str("https://api.hypixel.net/" + endpoint + "?key=" + api_key + "&name=" + name + "&profile=" + str(
                 profs["profile_id"]))
             return url
 
 
-def get_my_auctions(key, name, profile_name):
+def get_my_auctions(name, profile_name):
     endpoint = "skyblock/auction"
     total_coins = 0
     results = []
-    url = get_endpoint_url(key, name, profile_name, endpoint)
+    url = get_endpoint_url(name, profile_name, endpoint)
     headers = {"content-type": "application/json"}
     r = requests.get(url, headers=headers)
     data = r.json()
@@ -56,12 +59,12 @@ def get_my_auctions(key, name, profile_name):
         return results, total_coins
 
 
-def add_new_usr(author, key, name, profilename):
+def add_new_usr(author, name, profile_name):
     new_file = "usrdata/" + author + ".json"
     with open(new_file, "w") as nf:
-        data = {"key": str(key), "name": str(name), "profile": str(profilename)}
+        data = {"name": str(name), "profile": str(profile_name)}
         json.dump(data, nf, ensure_ascii=False)
-        return key, name, profilename
+        return name, profile_name
 
 
 class MyClient(discord.Client):
@@ -86,8 +89,8 @@ class MyClient(discord.Client):
                     profile_name = str(arg)
                 else:
                     profile_name = str(usr["profile"])
-                get_my_auctions(key, name, profile_name)
-                results, total_coins = get_my_auctions(key, name, profile_name)
+                get_my_auctions(name, profile_name)
+                results, total_coins = get_my_auctions(name, profile_name)
                 if len(results) == 0:
                     await message.channel.send(
                         message.author.mention + "\n" + ":information_source: " + "未回収のオークションはありません")
@@ -103,25 +106,23 @@ class MyClient(discord.Client):
                 await message.channel.send(message.author.mention + "\n" + ":warning: " + "キーエラー" + "\n" + "APIキーが不正です")
             except FileNotFoundError:
                 msg1 = "アクセス情報が登録されていません"
-                msg2 = "```!add (APIキー) (MCID) (プロファイル名)```"
+                msg2 = "```!add (MCID) (プロファイル名)```"
                 msg3 = "の形でアクセス情報を登録してください"
-                msg4 = "APIキーはゲーム内コマンド`/api` または`/api new` で取得できます"
-                msg5 = "プロファイル名は基本的に果物の名前です。ゲーム内コマンド`/profiles`から確認できます"
-                msg6 = "```例：!add f08fe762-3bd3-4499-9732-b7d696020266 hisuie08 Mango```"
+                msg4 = "プロファイル名は基本的に果物の名前です。ゲーム内コマンド`/profiles`から確認できます"
+                msg5 = "```例：!add hisuie08 Mango```"
                 await message.channel.send(
-                    message.author.mention + "\n" + msg1 + "\n" + msg2 + "\n" + msg3 + "\n" + msg4 + "\n" + msg5 + "\n" + msg6)
+                    message.author.mention + "\n" + msg1 + "\n" + msg2 + "\n" + msg3 + "\n" + msg4 + "\n" + msg5 + "\n")
             return
 
         if re.compile("(!add )(.+)([ ,])(.+)([ ,])(.+)").match(message.content):
             author = str(message.author.id)
             com = re.match("(!add )(.+)([ ,])(.+)([ ,])(.+)", message.content)
-            key = com.group(2)
-            name = com.group(4)
-            profile_name = com.group(6).capitalize()
+            name = com.group(2)
+            profile_name = com.group(4).capitalize()
             msg = "登録を完了しました。"
-            new_key, new_name, new_profile = add_new_usr(author, key, name, profile_name)
+            new_name, new_profile = add_new_usr(author, name, profile_name)
             await message.channel.send(
-                message.author.mention + msg + "\n" + "キー:" + str(new_key) + "\n" + "MCID:" + str(
+                message.author.mention + msg + "\n" + "\n" + "MCID:" + str(
                     new_name) + "\n" + "プロファイル:" + str(new_profile))
             return
 
