@@ -8,14 +8,14 @@ import requests
 
 
 def get_endpoint_url(key, name, profile_name, endpoint):
-    url = str("https://api.hypixel.net/player?key=" + (key) + "&name=" + (name))
+    url = str("https://api.hypixel.net/player?key=" + key + "&name=" + name)
     headers = {"content-type": "application/json"}
     r = requests.get(url, headers=headers)
     data = r.json()
     profiles = (data["player"]["stats"]["SkyBlock"]["profiles"])
     for profs in profiles.values():
         if (profs["cute_name"]) == profile_name:
-            url = str("https://api.hypixel.net/" + (endpoint) + "?key=" + (key) + "&name=" + (name) + "&profile=" + str(
+            url = str("https://api.hypixel.net/" + endpoint + "?key=" + key + "&name=" + name + "&profile=" + str(
                 profs["profile_id"]))
             return url
 
@@ -41,15 +41,15 @@ def get_my_auctions(key, name, profile_name):
             high_bid = "{:,}".format(bid)
             if end > 0:
                 result = str(
-                    ":arrows_counterclockwise: " + "アイテム: " + (item) + "\n" + "　 終了まで: " + str(delta_d) + "日 " + str(
+                    ":arrows_counterclockwise: " + "アイテム: " + item + "\n" + "　 終了まで: " + str(delta_d) + "日 " + str(
                         delta_h) + "時間" + str(delta_m) + "分 " + str(deltas) + "秒 " + "\n" + "　 最高bid: " + (
                         high_bid) + "coin")
                 total_coins = total_coins + bid
             else:
                 if int(unclaimed["highest_bid_amount"]) == 0:
-                    result = str(":warning: " + "アイテム: " + (item) + "\n" + "　 終了済み" + "\n" + "　 bid無し")
+                    result = str(":warning: " + "アイテム: " + item + "\n" + "　 終了済み" + "\n" + "　 bid無し")
                 else:
-                    result = str(":white_check_mark: " + "アイテム: " + (item) + "\n" + "　 終了済み" + "\n" + "　 最高bid: " + (
+                    result = str(":white_check_mark: " + "アイテム: " + item + "\n" + "　 終了済み" + "\n" + "　 最高bid: " + (
                         high_bid) + "coin")
                     total_coins = total_coins + bid
             results.append(result)
@@ -57,7 +57,7 @@ def get_my_auctions(key, name, profile_name):
 
 
 def add_new_usr(author, key, name, profilename):
-    new_file = "usrdata/" + (author) + ".json"
+    new_file = "usrdata/" + author + ".json"
     with open(new_file, "w") as nf:
         data = {"key": str(key), "name": str(name), "profile": str(profilename)}
         json.dump(data, nf, ensure_ascii=False)
@@ -76,7 +76,7 @@ class MyClient(discord.Client):
         if re.compile("!ah").search(message.content):
             author = str(message.author.id)
             try:
-                usrdata = "usrdata/" + (author) + ".json"
+                usrdata = "usrdata/" + author + ".json"
                 f = open(usrdata)
                 usr = json.load(f)
                 key = str(usr["key"])
@@ -96,7 +96,7 @@ class MyClient(discord.Client):
                     txt = "\n".join(results)
                     total_coins = "{:,}".format(total_coins)
                     await message.channel.send(
-                        message.author.mention + "\n" + "未回収のオークションがあります。" + "\n" + (txt) + "\n" + "　**売上総額: " + (
+                        message.author.mention + "\n" + "未回収のオークションがあります。" + "\n" + txt + "\n" + "　**売上総額: " + (
                             total_coins) + "coin**")
                     pass
             except KeyError:
@@ -121,11 +121,11 @@ class MyClient(discord.Client):
             msg = "登録を完了しました。"
             new_key, new_name, new_profile = add_new_usr(author, key, name, profile_name)
             await message.channel.send(
-                message.author.mention + (msg) + "\n" + "キー:" + str(new_key) + "\n" + "MCID:" + str(
+                message.author.mention + msg + "\n" + "キー:" + str(new_key) + "\n" + "MCID:" + str(
                     new_name) + "\n" + "プロファイル:" + str(new_profile))
             return
 
 
 client = MyClient()
-token = ("TOKEN")
+token = "TOKEN"
 client.run(token)
