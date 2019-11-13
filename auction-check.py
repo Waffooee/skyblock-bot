@@ -146,9 +146,12 @@ class MyClient(discord.Client):
             author = str(message.author.id)
             try:
                 name = ""
-                if re.match("(!ah )(.*)", message.content):
-                    name = str(re.match("!(ah )(.*)", message.content).group(2).capitalize())
-                name, profile = get_default_profile(author, name)
+                profile = ""
+                if re.match("(!ah )(.+)([ ,])(.+)", message.content):
+                    name = str(re.match("(!ah )(.+)([ ,])(.+)", message.content).group(2).capitalize())
+                    name, profile = get_default_profile(author, name)
+                    profile = str(re.match("(!ah )(.+)([ ,])(.+)", message.content).group(4).capitalize())
+
                 result, total_coins = get_my_auctions(name, profile)
                 if len(result) == 0:
                     await message.channel.send(
