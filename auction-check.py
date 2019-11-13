@@ -10,7 +10,7 @@ import requests
 api_key = ""
 
 
-def get_endpoint_url(name, profile_name, endpoint):
+def get_profile_id(name, profile_name):
     url = str("https://api.hypixel.net/player?key=" + api_key + "&name=" + name)
     headers = {"content-type": "application/json"}
     r = requests.get(url, headers=headers)
@@ -18,16 +18,19 @@ def get_endpoint_url(name, profile_name, endpoint):
     profiles = (data["player"]["stats"]["SkyBlock"]["profiles"])
     for profs in profiles.values():
         if (profs["cute_name"]) == profile_name:
-            url = str("https://api.hypixel.net/" + endpoint + "?key=" + api_key + "&name=" + name + "&profile=" + str(
-                profs["profile_id"]))
-            return url
+            return profs["profile_id"]
+    raise ValueError
 
 
-def get_my_auctions(name, profile_name):
+def get_endpoint_url(name, profile_id, endpoint):
+    return str("https://api.hypixel.net/" + endpoint + "?key=" + api_key + "&name=" + name + "&profile=" + profile_id)
+
+
+def get_my_auctions(name, profile_id):
     endpoint = "skyblock/auction"
     total_coins = 0
     results = []
-    url = get_endpoint_url(name, profile_name, endpoint)
+    url = get_endpoint_url(name, profile_id, endpoint)
     headers = {"content-type": "application/json"}
     r = requests.get(url, headers=headers)
     data = r.json()
@@ -73,6 +76,8 @@ def add_new_usr(author, name, profile_name):
         r.close()
     except FileNotFoundError:
         pass
+
+    profile_name = get_profile_id(name, profile_name)
     w = open(new_file, "w")
     usr["accounts"]["default"] = name
     usr["profiles"].append({
@@ -107,7 +112,7 @@ def convert_usr_data(author):
     r = open(usrdata, "r")
     usr = json.load(r)
     data_name = usr["name"]
-    data_profile = usr["profile"]
+    data_profile = get_profile_id(data_name, usr["profile"])
     r.close()  # with文使うとネスト深くなって嫌だったので普通にclose
 
     usr = {
@@ -146,12 +151,14 @@ class MyClient(discord.Client):
                 name, profile = get_default_profile(author, name)
                 result, total_coins = get_my_auctions(name, profile)
                 if len(result) == 0:
-                    await message.channel.send(message.author.mention + "\n" + ":information_source: "+"未回収のオークションはありません")
+                    await message.channel.send(
+                        message.author.mention + "\n" + ":information_source: " + "未回収のオークションはありません")
                     pass
                 else:
                     txt = "\n".join(result)
                     total_coins = "{:,}".format(total_coins)
-                    await message.channel.send(message.author.mention + "\n" + "未回収のオークションがあります。" + "\n" + txt + "\n" + "　**売上総額: " + total_coins+"coin**")
+                    await message.channel.send(
+                        message.author.mention + "\n" + "未回収のオークションがあります。" + "\n" + txt + "\n" + "　**売上総額: " + total_coins + "coin**")
 
             except KeyError:
                 await message.channel.send(message.author.mention + "\n" + ":warning: " + "キーエラー" + "\n" + "APIキーが不正です")
@@ -170,8 +177,14 @@ class MyClient(discord.Client):
             com = re.match("(!add )(.+)([ ,])(.+)", message.content)
             name = com.group(2)
             profile_name = com.group(4).capitalize()
+            new_name = ""
+            new_profile = ""
+            try:
+                new_name, new_profile = add_new_usr(author, name, profile_name)
+            except ValueError:
+                await message.channel.send(message.author.mention + "\n" + "プロファイル名が不正です: " + new_profile)
+                return
             msg = "登録を完了しました。"
-            new_name, new_profile = add_new_usr(author, name, profile_name)
             await message.channel.send(
                 message.author.mention + msg + "\n" + "\n" + "MCID:" + str(
                     new_name) + "\n" + "プロファイル:" + str(new_profile))
