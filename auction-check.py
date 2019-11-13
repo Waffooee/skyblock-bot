@@ -36,7 +36,7 @@ def get_my_auctions(name, profile_id):
     data = r.json()
     my_auctions = list(data["auctions"])
     for unclaimed in my_auctions:
-        if not (unclaimed["claimed"]):
+        if unclaimed["claimed"]:
             item = str(unclaimed["item_name"])
             end = int(((unclaimed["end"]) // 1000) - time.time())
             bid = int(unclaimed["highest_bid_amount"])
@@ -98,11 +98,11 @@ def get_default_profile(author, name):
             usr, data_profile = convert_usr_data(author)
             return usr["accounts"]["default"], data_profile
         else:
-            data = usr["profiles"]
+            profiles = usr["profiles"]
             if name == "":
                 name = usr["accounts"]["default"]
-            for d in data:
-                if d["name"] == name:
+            for d in profiles:
+                if d["name"].capitalize() == name.capitalize():
                     return name, d["profile"]
 
 
@@ -147,12 +147,13 @@ class MyClient(discord.Client):
             try:
                 name = ""
                 profile = ""
-                if re.match("(!ah )(.+)([ ,])(.+)", message.content):
+                if re.match("(!ah )(.+)([ ,])", message.content):
                     name = str(re.match("(!ah )(.+)([ ,])(.+)", message.content).group(2).capitalize())
                     name, profile = get_default_profile(author, name)
-                    profile = str(re.match("(!ah )(.+)([ ,])(.+)", message.content).group(4).capitalize())
+                    if re.match("(!ah )(.+)([ ,])(.+)", message.content):
+                        profile = str(re.match("(!ah )(.+)([ ,])(.+)", message.content).group(4).capitalize())
 
-                result, total_coins = get_my_auctions(name, profile)
+                result, total_coins = get_my_auctions(name, get_profile_id(name, profile))
                 if len(result) == 0:
                     await message.channel.send(
                         message.author.mention + "\n" + ":information_source: " + "未回収のオークションはありません")
